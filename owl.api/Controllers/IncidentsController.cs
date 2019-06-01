@@ -6,19 +6,26 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using owl.api.Models;
 using System.Web.Http;
+using Microsoft.Extensions.Options;
 
 namespace owl.api.Controllers
 {
 	[Route("api/[controller]")]
 	public class IncidentsController : Controller
 	{
-		protected Context db = new Context();
+		protected ibmclouddbContext db;
+
+		public IncidentsController(IOptions<EnvironmentConfig> configuration)
+		{
+			db = new ibmclouddbContext(configuration);
+		}
 
 		// GET: api/incidents
 		[HttpGet]
 		public IActionResult Get()
 		{
-			return Ok(db.Set<Incidents>());
+			var incidents = db.Incidents.ToList();
+			return Ok(incidents);
 		}
 
 		// GET api/incidents/5
@@ -26,7 +33,7 @@ namespace owl.api.Controllers
 		public IActionResult Get(int id)
 		{
 			var item = db.Set<Incidents>().Where(x => x.Id == id).FirstOrDefault();
-			if(item == null)
+			if (item == null)
 			{
 				return NotFound();
 			}
@@ -38,27 +45,24 @@ namespace owl.api.Controllers
 		[HttpPost]
 		public IActionResult Post([FromBody]Incidents incident)
 		{
-			if(!ModelState.IsValid)
+			if (!ModelState.IsValid)
 			{
 				return BadRequest(ModelState);
 			}
 
-			using (var context = new Context())
+			try
 			{
-				try
-				{
-					incident.CreatedAt = DateTime.UtcNow;
-					incident.UpdatedAt = DateTime.UtcNow;
-					context.Incidents.Add(incident);
+				incident.CreatedAt = DateTime.UtcNow;
+				incident.UpdatedAt = DateTime.UtcNow;
+				db.Incidents.Add(incident);
 
-					context.SaveChanges();
+				db.SaveChanges();
 
-					return Created(Url.RouteUrl(incident.Id), incident.Id);
-				}
-				catch(Exception ex)
-				{
-					return StatusCode(StatusCodes.Status500InternalServerError, ex);
-				}
+				return Created(Url.RouteUrl(incident.Id), incident.Id);
+			}
+			catch (Exception ex)
+			{
+				return StatusCode(StatusCodes.Status500InternalServerError, ex);
 			}
 		}
 
@@ -66,14 +70,14 @@ namespace owl.api.Controllers
 		[HttpPut("{id}")]
 		public IActionResult Put(int id, [FromBody]Incidents updatedIncident)
 		{
-			if(!ModelState.IsValid)
+			if (!ModelState.IsValid)
 			{
 				return BadRequest(ModelState);
 			}
 
 			var existing = db.Set<Incidents>().Where(x => x.Id == id).FirstOrDefault();
 
-			if(existing == null)
+			if (existing == null)
 			{
 				return NotFound();
 			}
@@ -91,7 +95,7 @@ namespace owl.api.Controllers
 
 				return Ok();
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
 				return StatusCode(StatusCodes.Status500InternalServerError, ex);
 			}
@@ -101,25 +105,22 @@ namespace owl.api.Controllers
 		[HttpDelete("{id}")]
 		public async Task<IActionResult> Delete(int id)
 		{
-			using (var context = new Context())
+			try
 			{
-				try
-				{
-					var item = context.Incidents.Find(id);
+				var item = db.Incidents.Find(id);
 
-					if(item == null)
-					{
-						return NotFound();
-					}
-						
-					context.Incidents.Remove(item);
-					await context.SaveChangesAsync();
-					return NoContent();
-				}
-				catch(Exception ex)
+				if (item == null)
 				{
-					return StatusCode(StatusCodes.Status500InternalServerError, ex);
+					return NotFound();
 				}
+
+				db.Incidents.Remove(item);
+				await db.SaveChangesAsync();
+				return NoContent();
+			}
+			catch (Exception ex)
+			{
+				return StatusCode(StatusCodes.Status500InternalServerError, ex);
 			}
 		}
 	}
