@@ -19,6 +19,10 @@ namespace owl.api
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
-                .UseStartup<Startup>();
+					.ConfigureAppConfiguration((hostingContext, config) =>
+					{
+						config.AddEnvironmentVariables();
+					})
+               .UseStartup<Startup>();
     }
 }

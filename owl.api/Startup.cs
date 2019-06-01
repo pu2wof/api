@@ -27,10 +27,13 @@ namespace owl.api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-			var connection = @"DataSource=development.sqlite3";
-			services.AddDbContext<Context>(options => options.UseSqlite(connection));
+			services.Configure<EnvironmentConfig>(Configuration);
 
-			services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+			services.AddMvc()
+				.SetCompatibilityVersion(CompatibilityVersion.Version_2_1)
+				.AddJsonOptions(
+					options => options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+				);
 
 		}
 
@@ -46,7 +49,7 @@ namespace owl.api
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
             app.UseMvc();
         }
     }
